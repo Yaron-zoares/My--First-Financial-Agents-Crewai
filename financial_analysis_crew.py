@@ -24,8 +24,10 @@ logger = logging.getLogger(__name__)
 load_dotenv()
 
 # Set OpenAI configuration
-os.environ["OPENAI_MODEL_NAME"] = 'gpt-4'
-os.environ["OPENAI_API_KEY"] = os.getenv("OPENAI_API_KEY")
+from model_config import set_model, DEFAULT_MODEL
+
+# Set the model (default: gpt-3.5-turbo for cost-effectiveness)
+set_model(DEFAULT_MODEL)
 
 # Global variables for safety and control
 MAX_ITERATIONS = 10

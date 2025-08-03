@@ -40,6 +40,9 @@ python detailed_results.py
 
 # Generate visualizations
 python create_visualizations.py
+
+# Change OpenAI model (for cost optimization)
+python change_model.py
 ```
 
 ## 📁 Project Structure
@@ -75,7 +78,7 @@ CREWAI/
 ### Environment Variables
 The system uses environment variables for API configuration:
 - `OPENAI_API_KEY`: Your OpenAI API key
-- `OPENAI_MODEL_NAME`: Model name (default: gpt-3.5-turbo)
+- `OPENAI_MODEL_NAME`: Model name (default: gpt-3.5-turbo - cost-effective option)
 
 ### Data Format
 The system expects CSV files with the following columns:
