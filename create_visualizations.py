@@ -10,12 +10,13 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from datetime import datetime, timedelta
 import matplotlib.dates as mdates
+import os
 
 # Set style for professional charts
 plt.style.use('seaborn-v0_8')
-plt.rcParams['font.size'] = 10
-plt.rcParams['axes.titlesize'] = 12
-plt.rcParams['axes.labelsize'] = 10
+plt.rcParams['font.size'] = 12
+plt.rcParams['axes.titlesize'] = 14
+plt.rcParams['axes.labelsize'] = 12
 
 def load_and_prepare_data(csv_file_path):
     """Load financial data from CSV file and prepare for analysis"""
@@ -57,6 +58,136 @@ def load_and_prepare_data(csv_file_path):
         print(f"❌ Error loading data: {str(e)}")
         raise
 
+def create_individual_charts(df):
+    """Create individual charts, each on a separate page"""
+    
+    # Create output directory for charts
+    output_dir = "financial_charts"
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
+    
+    print(f"📁 Creating charts in directory: {output_dir}")
+    
+    # 1. Revenue and Net Profit Over Time
+    plt.figure(figsize=(12, 8))
+    plt.plot(df['date'], df['revenue'], 'b-', label='Revenue', linewidth=2, marker='o')
+    plt.plot(df['date'], df['net_profit_after_tax'], 'g-', label='Net Profit', linewidth=2, marker='s')
+    plt.title('Revenue vs Net Profit Over Time', fontsize=16, fontweight='bold')
+    plt.xlabel('Date')
+    plt.ylabel('Amount (USD)')
+    plt.legend()
+    plt.grid(True, alpha=0.3)
+    plt.xticks(rotation=45)
+    plt.tight_layout()
+    plt.savefig(f'{output_dir}/01_revenue_vs_profit.png', dpi=300, bbox_inches='tight')
+    plt.show()
+    
+    # 2. Profit Margin Trend
+    plt.figure(figsize=(12, 8))
+    plt.plot(df['date'], df['profit_margin'], 'r-', linewidth=2, marker='o')
+    plt.title('Profit Margin Trend', fontsize=16, fontweight='bold')
+    plt.xlabel('Date')
+    plt.ylabel('Profit Margin (%)')
+    plt.grid(True, alpha=0.3)
+    plt.xticks(rotation=45)
+    plt.tight_layout()
+    plt.savefig(f'{output_dir}/02_profit_margin_trend.png', dpi=300, bbox_inches='tight')
+    plt.show()
+    
+    # 3. Quarterly Revenue Breakdown
+    plt.figure(figsize=(14, 8))
+    quarterly_revenue = df.groupby('quarter_label')['revenue'].sum()
+    bars = plt.bar(range(len(quarterly_revenue)), quarterly_revenue.values, color='skyblue', alpha=0.7)
+    plt.title('Quarterly Revenue Breakdown', fontsize=16, fontweight='bold')
+    plt.xlabel('Quarter')
+    plt.ylabel('Revenue (USD)')
+    plt.xticks(range(len(quarterly_revenue)), quarterly_revenue.index, rotation=45)
+    
+    # Add value labels on bars
+    for bar, value in zip(bars, quarterly_revenue.values):
+        plt.text(bar.get_x() + bar.get_width()/2, bar.get_height() + max(quarterly_revenue.values)*0.01,
+                f'${value:,.0f}', ha='center', va='bottom', fontsize=10)
+    
+    plt.tight_layout()
+    plt.savefig(f'{output_dir}/03_quarterly_revenue.png', dpi=300, bbox_inches='tight')
+    plt.show()
+    
+    # 4. Net Profit After Tax by Quarter
+    plt.figure(figsize=(14, 8))
+    quarterly_profit = df.groupby('quarter_label')['net_profit_after_tax'].sum()
+    bars = plt.bar(range(len(quarterly_profit)), quarterly_profit.values, color='lightgreen', alpha=0.7)
+    plt.title('Net Profit After Tax by Quarter', fontsize=16, fontweight='bold')
+    plt.xlabel('Quarter')
+    plt.ylabel('Net Profit (USD)')
+    plt.xticks(range(len(quarterly_profit)), quarterly_profit.index, rotation=45)
+    
+    # Add value labels on bars
+    for bar, value in zip(bars, quarterly_profit.values):
+        plt.text(bar.get_x() + bar.get_width()/2, bar.get_height() + max(quarterly_profit.values)*0.01,
+                f'${value:,.0f}', ha='center', va='bottom', fontsize=10)
+    
+    plt.tight_layout()
+    plt.savefig(f'{output_dir}/04_quarterly_profit.png', dpi=300, bbox_inches='tight')
+    plt.show()
+    
+    # 5. NPV Analysis
+    plt.figure(figsize=(12, 8))
+    plt.plot(df['date'], df['npv_net_profit'], 'purple', linewidth=2, marker='o')
+    plt.title('NPV of Net Profit (6% Discount Rate)', fontsize=16, fontweight='bold')
+    plt.xlabel('Date')
+    plt.ylabel('NPV (USD)')
+    plt.grid(True, alpha=0.3)
+    plt.xticks(rotation=45)
+    plt.tight_layout()
+    plt.savefig(f'{output_dir}/05_npv_analysis.png', dpi=300, bbox_inches='tight')
+    plt.show()
+    
+    # 6. Monthly Performance Heatmap
+    plt.figure(figsize=(12, 8))
+    monthly_data = df.pivot_table(values='revenue', index=df['date'].dt.year, 
+                                 columns=df['date'].dt.month, aggfunc='sum')
+    sns.heatmap(monthly_data, annot=True, fmt='.0f', cmap='YlOrRd')
+    plt.title('Monthly Revenue Heatmap', fontsize=16, fontweight='bold')
+    plt.xlabel('Month')
+    plt.ylabel('Year')
+    plt.tight_layout()
+    plt.savefig(f'{output_dir}/06_monthly_heatmap.png', dpi=300, bbox_inches='tight')
+    plt.show()
+    
+    # 7. Cost Structure Analysis
+    plt.figure(figsize=(10, 8))
+    cost_columns = ['opex', 'tax', 'fianance cost', 'sg@a']
+    cost_labels = ['Operating Expenses', 'Tax', 'Finance Cost', 'SG&A']
+    avg_costs = [df[col].mean() for col in cost_columns]
+    colors = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4']
+    
+    wedges, texts, autotexts = plt.pie(avg_costs, labels=cost_labels, autopct='%1.1f%%', 
+                                       colors=colors, startangle=90)
+    plt.title('Average Cost Structure', fontsize=16, fontweight='bold')
+    plt.tight_layout()
+    plt.savefig(f'{output_dir}/07_cost_structure.png', dpi=300, bbox_inches='tight')
+    plt.show()
+    
+    # 8. Growth Rate Analysis
+    plt.figure(figsize=(12, 8))
+    df['revenue_growth'] = df['revenue'].pct_change() * 100
+    df['profit_growth'] = df['net_profit_after_tax'].pct_change() * 100
+    
+    plt.plot(df['date'], df['revenue_growth'], 'b-', label='Revenue Growth', linewidth=2, marker='o')
+    plt.plot(df['date'], df['profit_growth'], 'g-', label='Profit Growth', linewidth=2, marker='s')
+    plt.title('Growth Rate Analysis', fontsize=16, fontweight='bold')
+    plt.xlabel('Date')
+    plt.ylabel('Growth Rate (%)')
+    plt.legend()
+    plt.grid(True, alpha=0.3)
+    plt.xticks(rotation=45)
+    plt.tight_layout()
+    plt.savefig(f'{output_dir}/08_growth_analysis.png', dpi=300, bbox_inches='tight')
+    plt.show()
+    
+    print(f"✅ All charts have been created and saved in '{output_dir}' directory")
+    return df
+
 def create_comprehensive_dashboard(df):
     """Create comprehensive financial dashboard with multiple charts"""
     
@@ -67,16 +198,16 @@ def create_comprehensive_dashboard(df):
     gs = fig.add_gridspec(3, 3, hspace=0.3, wspace=0.3)
     
     # Main title
-    fig.suptitle('Financial Analysis Dashboard - דשבורד ניתוח פיננסי', 
+    fig.suptitle('Financial Analysis Dashboard', 
                  fontsize=16, fontweight='bold', y=0.98)
     
     # 1. Revenue and Net Profit Over Time (top left)
     ax1 = fig.add_subplot(gs[0, :2])
-    ax1.plot(df['date'], df['revenue'], 'b-', label='Revenue - הכנסות', linewidth=2, marker='o')
-    ax1.plot(df['date'], df['net_profit_after_tax'], 'g-', label='Net Profit - רווח נקי', linewidth=2, marker='s')
-    ax1.set_title('Revenue vs Net Profit Over Time\nהכנסות מול רווח נקי לאורך זמן')
-    ax1.set_xlabel('Date - תאריך')
-    ax1.set_ylabel('Amount (USD) - סכום (דולר)')
+    ax1.plot(df['date'], df['revenue'], 'b-', label='Revenue', linewidth=2, marker='o')
+    ax1.plot(df['date'], df['net_profit_after_tax'], 'g-', label='Net Profit', linewidth=2, marker='s')
+    ax1.set_title('Revenue vs Net Profit Over Time')
+    ax1.set_xlabel('Date')
+    ax1.set_ylabel('Amount (USD)')
     ax1.legend()
     ax1.grid(True, alpha=0.3)
     ax1.tick_params(axis='x', rotation=45)
@@ -84,9 +215,9 @@ def create_comprehensive_dashboard(df):
     # 2. Profit Margin Trend (top right)
     ax2 = fig.add_subplot(gs[0, 2])
     ax2.plot(df['date'], df['profit_margin'], 'r-', linewidth=2, marker='o')
-    ax2.set_title('Profit Margin Trend\nמגמת שולי רווח')
-    ax2.set_xlabel('Date - תאריך')
-    ax2.set_ylabel('Profit Margin (%) - שולי רווח (%)')
+    ax2.set_title('Profit Margin Trend')
+    ax2.set_xlabel('Date')
+    ax2.set_ylabel('Profit Margin (%)')
     ax2.grid(True, alpha=0.3)
     ax2.tick_params(axis='x', rotation=45)
     
@@ -94,9 +225,9 @@ def create_comprehensive_dashboard(df):
     ax3 = fig.add_subplot(gs[1, 0])
     quarterly_revenue = df.groupby('quarter_label')['revenue'].sum()
     bars = ax3.bar(range(len(quarterly_revenue)), quarterly_revenue.values, color='skyblue', alpha=0.7)
-    ax3.set_title('Quarterly Revenue Breakdown\nפילוח הכנסות לפי רבעונים')
-    ax3.set_xlabel('Quarter - רבעון')
-    ax3.set_ylabel('Revenue (USD) - הכנסות (דולר)')
+    ax3.set_title('Quarterly Revenue Breakdown')
+    ax3.set_xlabel('Quarter')
+    ax3.set_ylabel('Revenue (USD)')
     ax3.set_xticks(range(len(quarterly_revenue)))
     ax3.set_xticklabels(quarterly_revenue.index, rotation=45)
     
@@ -109,9 +240,9 @@ def create_comprehensive_dashboard(df):
     ax4 = fig.add_subplot(gs[1, 1])
     quarterly_profit = df.groupby('quarter_label')['net_profit_after_tax'].sum()
     bars = ax4.bar(range(len(quarterly_profit)), quarterly_profit.values, color='lightgreen', alpha=0.7)
-    ax4.set_title('Net Profit After Tax by Quarter\nרווח נקי לאחר מס לפי רבעון')
-    ax4.set_xlabel('Quarter - רבעון')
-    ax4.set_ylabel('Net Profit (USD) - רווח נקי (דולר)')
+    ax4.set_title('Net Profit After Tax by Quarter')
+    ax4.set_xlabel('Quarter')
+    ax4.set_ylabel('Net Profit (USD)')
     ax4.set_xticks(range(len(quarterly_profit)))
     ax4.set_xticklabels(quarterly_profit.index, rotation=45)
     
@@ -123,9 +254,9 @@ def create_comprehensive_dashboard(df):
     # 5. NPV Analysis (middle right)
     ax5 = fig.add_subplot(gs[1, 2])
     ax5.plot(df['date'], df['npv_net_profit'], 'purple', linewidth=2, marker='o')
-    ax5.set_title('NPV of Net Profit (6% Discount)\nערך נוכחי של רווח נקי (6% היוון)')
-    ax5.set_xlabel('Date - תאריך')
-    ax5.set_ylabel('NPV (USD) - ערך נוכחי (דולר)')
+    ax5.set_title('NPV of Net Profit (6% Discount)')
+    ax5.set_xlabel('Date')
+    ax5.set_ylabel('NPV (USD)')
     ax5.grid(True, alpha=0.3)
     ax5.tick_params(axis='x', rotation=45)
     
@@ -134,9 +265,9 @@ def create_comprehensive_dashboard(df):
     monthly_data = df.pivot_table(values='revenue', index=df['date'].dt.year, 
                                  columns=df['date'].dt.month, aggfunc='sum')
     sns.heatmap(monthly_data, annot=True, fmt='.0f', cmap='YlOrRd', ax=ax6)
-    ax6.set_title('Monthly Revenue Heatmap\nמפת חום הכנסות חודשיות')
-    ax6.set_xlabel('Month - חודש')
-    ax6.set_ylabel('Year - שנה')
+    ax6.set_title('Monthly Revenue Heatmap')
+    ax6.set_xlabel('Month')
+    ax6.set_ylabel('Year')
     
     # 7. Cost Structure Analysis (bottom center)
     ax7 = fig.add_subplot(gs[2, 1])
@@ -147,7 +278,7 @@ def create_comprehensive_dashboard(df):
     
     wedges, texts, autotexts = ax7.pie(avg_costs, labels=cost_labels, autopct='%1.1f%%', 
                                        colors=colors, startangle=90)
-    ax7.set_title('Average Cost Structure\nמבנה עלויות ממוצע')
+    ax7.set_title('Average Cost Structure')
     
     # 8. Growth Rate Analysis (bottom right)
     ax8 = fig.add_subplot(gs[2, 2])
@@ -156,9 +287,9 @@ def create_comprehensive_dashboard(df):
     
     ax8.plot(df['date'], df['revenue_growth'], 'b-', label='Revenue Growth', linewidth=2, marker='o')
     ax8.plot(df['date'], df['profit_growth'], 'g-', label='Profit Growth', linewidth=2, marker='s')
-    ax8.set_title('Growth Rate Analysis\nניתוח קצב צמיחה')
-    ax8.set_xlabel('Date - תאריך')
-    ax8.set_ylabel('Growth Rate (%) - קצב צמיחה (%)')
+    ax8.set_title('Growth Rate Analysis')
+    ax8.set_xlabel('Date')
+    ax8.set_ylabel('Growth Rate (%)')
     ax8.legend()
     ax8.grid(True, alpha=0.3)
     ax8.tick_params(axis='x', rotation=45)
@@ -295,9 +426,13 @@ if __name__ == "__main__":
     print("🚀 Loading financial data...")
     financial_df = load_and_prepare_data('agent_test.csv')
     
-    # Create comprehensive dashboard
-    print("\n📊 Creating comprehensive financial dashboard...")
-    enhanced_df = create_comprehensive_dashboard(financial_df)
+    # Create individual charts (each on separate page)
+    print("\n📊 Creating individual charts...")
+    enhanced_df = create_individual_charts(financial_df)
+    
+    # Create comprehensive dashboard (optional)
+    print("\n📊 Creating comprehensive dashboard...")
+    create_comprehensive_dashboard(enhanced_df)
     
     # Print financial summary
     print_financial_summary(enhanced_df)
